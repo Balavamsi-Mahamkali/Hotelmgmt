@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amaravati House - Bill Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QRious CDN for QR code generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        /* Custom styles for better aesthetics and responsiveness */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .input-group label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease-in-out;
+            box-sizing: border-box;
+        }
+        .input-group input:focus,
+        .input-group select:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #ef4444; /* Red-500 for restaurant theme */
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background-color: #ef4444; /* Red-500 */
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #dc2626; /* Red-600 */
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background-color: #fee2e2; /* Red-100 */
+            color: #dc2626; /* Red-600 */
+            border: 1px solid #fca5a5; /* Red-300 */
+        }
+        .btn-secondary:hover {
+            background-color: #fecaca; /* Red-200 */
+            transform: translateY(-1px);
+        }
+        .btn-ai {
+            background-color: #fcd34d; /* Amber-300 */
+            color: #92400e; /* Amber-800 */
+            border: 1px solid #fbbf24; /* Amber-400 */
+        }
+        .btn-ai:hover {
+            background-color: #fbbf24; /* Amber-400 */
+            transform: translateY(-1px);
+        }
+        .bill-summary div {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+        .bill-summary div:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #333;
+        }
+        .bill-summary .total-amount {
+            font-size: 1.4rem;
+            color: #ef4444; /* Red-500 */
+        }
+        .message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .message-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .message-content {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+            transform: translateY(-15px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .message-modal.show .message-content {
+            transform: translateY(0);
+        }
+        .message-content h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .message-content p {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .message-content button {
+            background-color: #ef4444;
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .message-content button:hover {
+            background-color: #dc2626;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ef4444;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* New styles for menu and order sections */
+        .menu-category-btn {
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            background-color: #fef2f2; /* Red-50 */
+            color: #b91c1c; /* Red-700 */
+            border: 1px solid #fca5a5; /* Red-300 */
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .menu-category-btn.active {
+            background-color: #ef4444; /* Red-500 */
+            color: #ffffff;
+            border-color: #dc2626; /* Red-600 */
+        }
+        .menu-category-btn:hover:not(.active) {
+            background-color: #fecaca; /* Red-200 */
+        }
+        .menu-item-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 15px;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+        }
+        .menu-item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .menu-item-card .item-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+        .menu-item-card .item-price {
+            font-weight: 700;
+            color: #ef4444; /* Red-500 */
+            font-size: 1.1rem;
+        }
+        .order-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        .order-item .item-info {
+            flex-grow: 1;
+        }
+        .order-item .item-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .order-item .item-price {
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .order-item .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .order-item .quantity-controls button {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            border-radius: 5px;
+            padding: 2px 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+        .order-item .quantity-controls button:hover {
+            background-color: #fecaca;
+        }
+        .order-item .quantity-controls span {
+            font-weight: 600;
+            color: #333;
+            min-width: 25px;
+            text-align: center;
+        }
+        .order-item .item-total-price {
+            font-weight: 700;
+            color: #ef4444;
+            min-width: 70px;
+            text-align: right;
+        }
+        /* QR Code specific styling */
+        #qrcodeCanvas, #customQrcodeCanvas { /* Changed IDs to target canvas */
+            margin: 20px auto;
+            display: block;
+            width: 150px; /* Adjust size as needed */
+            height: 150px; /* Adjust size as needed */
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        /* No need for img styling as QRious draws directly to canvas */
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+            }
+            .form-section {
+                flex: 2; /* Menu section takes more space */
+            }
+            .bill-section {
+                flex: 1; /* Order summary section */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-5 md:p-10">
+    <div class="container">
+        <!-- Left Section: Menu Selection -->
+        <div class="form-section flex-1">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center md:text-left">Amaravati House</h1>
+
+            <!-- Real-time Date and Time -->
+            <div class="bg-red-50 p-4 rounded-lg mb-6 shadow-sm">
+                <p class="text-lg font-semibold text-red-700 text-center">
+                    Current Date & Time: <span id="currentDateTime" class="font-bold"></span>
+                </p>
+            </div>
+
+            <!-- Customer/Table Info (optional) -->
+            <div class="mb-6 space-y-3">
+                <div class="input-group">
+                    <label for="customerName">Customer Name</label>
+                    <input type="text" id="customerName" placeholder="Enter customer name (optional)" class="rounded-lg shadow-sm">
+                </div>
+                <div class="input-group">
+                    <label for="tableNumber">Table Number</label>
+                    <input type="text" id="tableNumber" placeholder="Enter table number (optional)" class="rounded-lg shadow-sm">
+                </div>
+            </div>
+
+            <!-- Menu Categories -->
+            <div class="menu-categories-section bg-gray-50 p-4 rounded-lg shadow-sm mb-6">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Menu Categories</h3>
+                <div id="menuCategoriesContainer" class="flex flex-wrap gap-3">
+                    <!-- Category buttons will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Menu Items Display -->
+            <div class="menu-items-display bg-gray-50 p-4 rounded-lg shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Select Items</h3>
+                <div id="menuItemsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Menu item cards will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: Order Summary & Bill Display -->
+        <div class="bill-section flex-1 bg-gray-50 p-6 rounded-lg shadow-md">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-6 text-center md:text-left">Current Order</h2>
+
+            <div id="currentOrderList" class="space-y-3 mb-6">
+                <p class="text-gray-600 text-center" id="emptyOrderMessage">Click on menu items to add them to the order.</p>
+                <!-- Dynamically added order items will go here -->
+            </div>
+
+            <button type="button" id="generateBillBtn" class="btn btn-primary w-full mt-6">
+                Generate Bill
+            </button>
+
+            <div id="billOutput" class="space-y-4 mt-8 pt-8 border-t border-gray-200">
+                <p class="text-gray-600 text-center">Your final bill will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Modal -->
+    <div id="messageModal" class="message-modal">
+        <div class="message-content">
+            <h3 id="messageTitle"></h3>
+            <p id="messageText"></p>
+            <button id="messageCloseBtn">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Sample menu items with prices, categorized
+        const menuItems = {
+            "Tiffins": {
+                "dosa": 80,
+                "idli": 60,
+                "vada": 50,
+                "poori": 90,
+                "masala-dosa": 95,
+                "uttapam": 85,
+                "pongal": 70,
+            },
+            "Biryanis": {
+                "chicken-biryani": 280,
+                "veg-biryani": 220,
+                "egg-biryani": 240,
+                "mutton-biryani": 350,
+            },
+            "Main Course": {
+                "paneer-butter-masala": 180,
+                "chicken-curry": 200,
+                "dal-makhani": 150,
+                "mix-veg": 160,
+                "naan": 40,
+                "roti": 30,
+                "rice": 70,
+            },
+            "Hot Beverages": {
+                "coffee": 40,
+                "tea": 30,
+                "filter-coffee": 50,
+                "hot-chocolate": 70,
+            },
+            "Cold Beverages": {
+                "fresh-lime-soda": 60,
+                "lassi": 80,
+                "cold-coffee": 90,
+                "orange-juice": 100,
+                "coke": 45,
+            },
+            "Tea Snacks": {
+                "samosa": 25,
+                "pakora": 60,
+                "french-fries": 90,
+                "veg-roll": 75,
+                "spring-roll": 85,
+            },
+            "Desserts": {
+                "ice-cream": 100,
+                "gulab-jamun": 60,
+                "brownie": 120,
+                "fruit-salad": 90
+            }
+        };
+
+        // Tax rate (e.g., 5% GST for restaurants in India)
+        const TAX_RATE = 0.05; // 5%
+
+        // Get DOM elements
+        const currentDateTimeSpan = document.getElementById('currentDateTime');
+        const customerNameInput = document.getElementById('customerName');
+        const tableNumberInput = document.getElementById('tableNumber');
+        const menuCategoriesContainer = document.getElementById('menuCategoriesContainer');
+        const menuItemsGrid = document.getElementById('menuItemsGrid');
+        const currentOrderList = document.getElementById('currentOrderList');
+        const emptyOrderMessage = document.getElementById('emptyOrderMessage');
+        const generateBillBtn = document.getElementById('generateBillBtn');
+        const billOutputDiv = document.getElementById('billOutput');
+        const messageModal = document.getElementById('messageModal');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const messageCloseBtn = document.getElementById('messageCloseBtn');
+
+        // Custom QR Code elements (kept as they are part of the core payment)
+        // Note: customQrcodeOutputDiv is now customQrcodeCanvas
+        const customQrcodeCanvas = document.getElementById('customQrcodeCanvas'); // Changed to canvas
+        const customQrMessage = document.getElementById('customQrMessage');
+
+
+        let currentOrder = []; // Array to hold items in the current order
+
+        /**
+         * Displays a custom message modal instead of alert().
+         * @param {string} title - The title of the message.
+         * @param {string} message - The content of the message.
+         */
+        function showMessage(title, message) {
+            messageTitle.textContent = title;
+            messageText.textContent = message;
+            messageModal.classList.add('show');
+        }
+
+        // Close message modal event listener
+        messageCloseBtn.addEventListener('click', () => {
+            messageModal.classList.remove('show');
+        });
+
+        // Function to update real-time date and time
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            };
+            currentDateTimeSpan.textContent = now.toLocaleDateString('en-IN', options);
+        }
+
+        // Update date and time every second
+        setInterval(updateDateTime, 1000);
+        // Initial call to display immediately
+        updateDateTime();
+
+        /**
+         * Renders menu categories as clickable buttons.
+         */
+        function renderMenuCategories() {
+            menuCategoriesContainer.innerHTML = '';
+            const categories = Object.keys(menuItems);
+            categories.forEach((category, index) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.classList.add('menu-category-btn');
+                button.textContent = category;
+                button.dataset.category = category;
+                button.addEventListener('click', () => {
+                    selectCategory(category);
+                });
+                menuCategoriesContainer.appendChild(button);
+
+                // Select the first category by default
+                if (index === 0) {
+                    button.classList.add('active');
+                    renderMenuItems(category);
+                }
+            });
+        }
+
+        /**
+         * Highlights the selected category button and renders items for that category.
+         * @param {string} category - The category to select.
+         */
+        function selectCategory(category) {
+            const buttons = menuCategoriesContainer.querySelectorAll('.menu-category-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            renderMenuItems(category);
+        }
+
+        /**
+         * Renders menu items for the selected category in a grid.
+         * @param {string} category - The category whose items should be rendered.
+         */
+        function renderMenuItems(category) {
+            menuItemsGrid.innerHTML = '';
+            const items = menuItems[category];
+            if (items) {
+                for (const itemName in items) {
+                    const itemPrice = items[itemName];
+                    const itemCard = document.createElement('div');
+                    itemCard.classList.add('menu-item-card');
+                    itemCard.innerHTML = `
+                        <div class="item-name">${itemName.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</div>
+                        <div class="item-price">₹${itemPrice.toFixed(2)}</div>
+                    `;
+                    itemCard.dataset.itemName = itemName;
+                    itemCard.dataset.itemPrice = itemPrice;
+                    itemCard.addEventListener('click', addItemToOrder);
+                    menuItemsGrid.appendChild(itemCard);
+                }
+            } else {
+                menuItemsGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center">No items found for this category.</p>';
+            }
+        }
+
+        /**
+         * Adds an item to the current order list or increments its quantity if already present.
+         * @param {Event} event - The click event from the menu item card.
+         */
+        function addItemToOrder(event) {
+            const clickedCard = event.currentTarget;
+            const itemName = clickedCard.dataset.itemName;
+            const itemPrice = parseFloat(clickedCard.dataset.itemPrice);
+
+            const existingItemIndex = currentOrder.findIndex(item => item.name === itemName);
+
+            if (existingItemIndex > -1) {
+                currentOrder[existingItemIndex].quantity++;
+            } else {
+                currentOrder.push({
+                    name: itemName,
+                    quantity: 1,
+                    unitPrice: itemPrice
+                });
+            }
+            updateOrderListDisplay();
+        }
+
+        /**
+         * Updates the display of items in the current order list.
+         */
+        function updateOrderListDisplay() {
+            currentOrderList.innerHTML = '';
+            if (currentOrder.length === 0) {
+                emptyOrderMessage.classList.remove('hidden');
+            } else {
+                emptyOrderMessage.classList.add('hidden');
+                currentOrder.forEach((item, index) => {
+                    const orderItemDiv = document.createElement('div');
+                    orderItemDiv.classList.add('order-item');
+                    orderItemDiv.innerHTML = `
+                        <div class="item-info">
+                            <div class="item-name">${item.name.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</div>
+                            <div class="item-price">₹${item.unitPrice.toFixed(2)}</div>
+                        </div>
+                        <div class="quantity-controls">
+                            <button data-index="${index}" data-action="decrease">-</button>
+                            <span>${item.quantity}</span>
+                            <button data-index="${index}" data-action="increase">+</button>
+                        </div>
+                        <div class="item-total-price">₹${(item.quantity * item.unitPrice).toFixed(2)}</div>
+                    `;
+                    currentOrderList.appendChild(orderItemDiv);
+                });
+
+                // Add event listeners for quantity controls
+                currentOrderList.querySelectorAll('.quantity-controls button').forEach(button => {
+                    button.addEventListener('click', handleQuantityChange);
+                });
+            }
+        }
+
+        /**
+         * Handles quantity increase/decrease and item removal from order list.
+         * @param {Event} event - The click event from quantity control buttons.
+         */
+        function handleQuantityChange(event) {
+            const index = parseInt(event.target.dataset.index);
+            const action = event.target.dataset.action;
+
+            if (action === 'increase') {
+                currentOrder[index].quantity++;
+            } else if (action === 'decrease') {
+                currentOrder[index].quantity--;
+                if (currentOrder[index].quantity <= 0) {
+                    currentOrder.splice(index, 1); // Remove item if quantity is 0 or less
+                }
+            }
+            updateOrderListDisplay();
+        }
+
+        // Generate Bill button handler
+        generateBillBtn.addEventListener('click', () => {
+            if (currentOrder.length === 0) {
+                showMessage('Order Empty', 'Please add items to the order before generating the bill.');
+                return;
+            }
+
+            const customerName = customerNameInput.value.trim();
+            const tableNumber = tableNumberInput.value.trim();
+
+            let totalItemsCost = 0;
+            currentOrder.forEach(item => {
+                totalItemsCost += item.quantity * item.unitPrice;
+            });
+
+            const subtotal = totalItemsCost;
+            const taxAmount = subtotal * TAX_RATE;
+            const totalAmount = subtotal + taxAmount;
+
+            displayBill({
+                customerName,
+                tableNumber,
+                orderItems: currentOrder, // Pass the current order array
+                subtotal,
+                taxAmount,
+                totalAmount
+            });
+        });
+
+        /**
+         * Renders the calculated bill in the bill output section, including a UPI QR code.
+         * @param {object} billData - Object containing all bill details.
+         */
+        function displayBill(billData) {
+            let itemsHtml = '';
+            if (billData.orderItems.length > 0) {
+                itemsHtml = `
+                    <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Order Details:</h4>
+                    <ul class="list-disc list-inside text-gray-600 mb-4 ml-4">
+                        ${billData.orderItems.map(item => `
+                            <li>${item.name.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} x ${item.quantity} @ ₹${item.unitPrice.toFixed(2)} each = ₹${(item.quantity * item.unitPrice).toFixed(2)}</li>
+                        `).join('')}
+                    </ul>
+                `;
+            } else {
+                itemsHtml = `<p class="text-gray-600 italic">No items in the order.</p>`;
+            }
+
+            // --- UPI QR Code Generation ---
+            // This creates a UPI payment link that pre-fills the amount in the customer's UPI app.
+            // Format: upi://pay?pa=<VPA>&pn=<Payee_Name>&am=<Amount>&cu=INR&tn=<Transaction_Note>
+            const upiId = '6302286236@ibl'; // UPI ID updated here
+            const payeeName = 'Amaravati House'; // **IMPORTANT: Replace with your restaurant's actual name**
+            const amount = billData.totalAmount.toFixed(2);
+            const transactionNote = `Bill for ${billData.customerName || 'Guest'} (Table: ${billData.tableNumber || 'N/A'})`;
+
+            // Encode the components to ensure the URL is valid
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+
+
+            billOutputDiv.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Customer Details</h3>
+                    <div class="text-gray-700 space-y-2">
+                        <p><span class="font-semibold">Customer Name:</span> ${billData.customerName || 'N/A'}</p>
+                        <p><span class="font-semibold">Table Number:</span> ${billData.tableNumber || 'N/A'}</p>
+                    </div>
+
+                    <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 border-b pb-2">Charges Summary</h3>
+                    <div class="bill-summary text-gray-700">
+                        ${itemsHtml}
+                        <div>
+                            <span class="font-semibold">Subtotal:</span>
+                            <span class="font-semibold">₹${billData.subtotal.toFixed(2)}</span>
+                        </div>
+                        <div>
+                            <span>Tax (GST ${ (TAX_RATE * 100).toFixed(0) }%) :</span>
+                            <span>₹${billData.taxAmount.toFixed(2)}</span>
+                        </div>
+                        <div class="total-amount mt-4 pt-4 border-t-2 border-red-200">
+                            <span>Total Amount Due:</span>
+                            <span>₹${billData.totalAmount.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <p class="text-center text-gray-600 mt-6 italic">Thank you for visiting Amaravati House!</p>
+
+                    <!-- QR Code for Payment -->
+                    <div class="mt-8 text-center">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-4">Scan with any UPI App to Pay</h4>
+                        <canvas id="qrcodeCanvas"></canvas> <!-- Changed from div to canvas -->
+                        <p class="text-sm text-gray-600 mt-2">You will be prompted to pay <strong>₹${billData.totalAmount.toFixed(2)}</strong></p>
+                        <p class="text-xs text-gray-500 mt-1">UPI ID: ${upiId}</p>
+                    </div>
+                </div>
+            `;
+            // Generate QR code after the bill output is rendered
+            generateQRCode(document.getElementById("qrcodeCanvas"), upiUrl); // Pass canvas element
+        }
+
+        /**
+         * Generates a QR code using QRious and displays it on the specified canvas.
+         * @param {HTMLCanvasElement} targetCanvas - The canvas element where the QR code should be rendered.
+         * @param {string} text - The text to encode in the QR code.
+         */
+        function generateQRCode(targetCanvas, text) {
+            console.log("Inside generateQRCode. typeof QRious:", typeof QRious); // Diagnostic log
+            if (typeof QRious === 'undefined') {
+                console.error("QRious library is not loaded. Cannot generate QR code.");
+                // Display a message on the canvas itself or nearby
+                const ctx = targetCanvas.getContext('2d');
+                ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+                ctx.font = "12px Arial";
+                ctx.fillStyle = "red";
+                ctx.textAlign = "center";
+                ctx.fillText("QR Load Error", targetCanvas.width / 2, targetCanvas.height / 2);
+                return;
+            }
+            try {
+                // Clear the canvas before drawing a new QR code
+                const ctx = targetCanvas.getContext('2d');
+                ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+                new QRious({
+                    element: targetCanvas,
+                    value: text,
+                    size: 150, // Match the CSS width/height for visual consistency
+                    level: 'H' // Error correction level (L, M, Q, H)
+                });
+            } catch (e) {
+                console.error("Error generating QR code with QRious:", e);
+                const ctx = targetCanvas.getContext('2d');
+                ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+                ctx.font = "12px Arial";
+                ctx.fillStyle = "red";
+                ctx.textAlign = "center";
+                ctx.fillText("QR Gen Error", targetCanvas.width / 2, targetCanvas.height / 2);
+            }
+        }
+
+        // Initial rendering on page load
+        window.onload = () => {
+            updateDateTime();
+            renderMenuCategories();
+            updateOrderListDisplay(); // Initialize empty order list display
+        };
+    </script>
+</body>
+</html>
